@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TherapyPod AI — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0e1419;
+    --surface2: #141b22;
+    --border: rgba(99,210,190,0.12);
+    --teal: #63d2be;
+    --teal-dim: rgba(99,210,190,0.15);
+    --teal-glow: rgba(99,210,190,0.35);
+    --gold: #e8c97a;
+    --red: #e87a7a;
+    --blue: #7ab0e8;
+    --purple: #b07ae8;
+    --text: #d4e0dc;
+    --text-dim: rgba(212,224,220,0.45);
+    --radius: 18px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(99,210,190,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  .header {
+    position: relative;
+    z-index: 10;
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(8,12,16,0.9);
+    backdrop-filter: blur(20px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--teal), #3ab8a0);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 20px var(--teal-glow);
+  }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+
+  .logo-text span { color: var(--teal); }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    background: rgba(99,210,190,0.08);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--teal);
+    letter-spacing: 0.3px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--teal-glow); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+  }
+
+  /* Session info */
+  .session-bar {
+    position: relative;
+    z-index: 5;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .session-info {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .session-info strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .sep { color: var(--border); }
+
+  /* Mood indicator */
+  .mood-chip {
+    margin-left: auto;
+    padding: 5px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    transition: all 0.4s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mood-neutral  { background: rgba(212,224,220,0.08); border-color: rgba(212,224,220,0.15); color: var(--text-dim); }
+  .mood-anxious  { background: rgba(232,201,122,0.1); border-color: rgba(232,201,122,0.25); color: var(--gold); }
+  .mood-sad      { background: rgba(122,176,232,0.1); border-color: rgba(122,176,232,0.25); color: var(--blue); }
+  .mood-angry    { background: rgba(232,122,122,0.1); border-color: rgba(232,122,122,0.25); color: var(--red); }
+  .mood-positive { background: rgba(99,210,190,0.1); border-color: rgba(99,210,190,0.25); color: var(--teal); }
+  .mood-crisis   { background: rgba(232,122,122,0.18); border-color: rgba(232,122,122,0.5); color: var(--red); animation: crisis-pulse 1s infinite; }
+
+  @keyframes crisis-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,122,122,0.3); }
+    50% { box-shadow: 0 0 0 6px transparent; }
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    z-index: 5;
+  }
+
+  .chat-area::-webkit-scrollbar { width: 3px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Welcome card */
+  .welcome-card {
+    text-align: center;
+    padding: 40px 24px;
+    animation: fadeUp 0.6s ease;
+  }
+
+  .welcome-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .welcome-card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: #fff;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+  }
+
+  .welcome-card p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    max-width: 280px;
+    margin: 0 auto 24px;
+  }
+
+  .starter-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  .starter-pill {
+    padding: 12px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+
+  .starter-pill:hover {
+    background: var(--teal-dim);
+    border-color: rgba(99,210,190,0.3);
+    color: var(--text);
+    transform: translateX(4px);
+  }
+
+  /* Messages */
+  .message {
+    display: flex;
+    flex-direction: column;
+    animation: fadeUp 0.35s ease;
+    max-width: 88%;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.bot  { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 14px 18px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  .message.user .bubble {
+    background: linear-gradient(135deg, var(--teal), #3ab8a0);
+    color: #0a1a17;
+    font-weight: 400;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 20px rgba(99,210,190,0.2);
+  }
+
+  .message.bot .bubble {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+
+  .crisis-bubble {
+    background: rgba(232,122,122,0.1) !important;
+    border-color: rgba(232,122,122,0.35) !important;
+    color: #f0a0a0 !important;
+  }
+
+  .msg-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px;
+  }
+
+  .mood-tag {
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  /* Typing indicator */
+  .typing {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: typing-bounce 1.2s infinite;
+    opacity: 0.6;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    position: relative;
+    z-index: 10;
+    padding: 16px 20px 24px;
+    background: rgba(8,12,16,0.95);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+  }
+
+  .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 14px;
+    transition: border-color 0.2s ease;
+  }
+
+  .input-row:focus-within {
+    border-color: rgba(99,210,190,0.4);
+    box-shadow: 0 0 0 3px rgba(99,210,190,0.06);
+  }
+
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    resize: none;
+    min-height: 22px;
+    max-height: 100px;
+    line-height: 1.5;
+  }
+
+  textarea::placeholder { color: var(--text-dim); }
+
+  .send-btn {
+    width: 38px; height: 38px;
+    min-width: 38px;
+    background: linear-gradient(135deg, var(--teal), #3ab8a0);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(99,210,190,0.25);
+  }
+
+  .send-btn:hover { transform: scale(1.05); box-shadow: 0 6px 18px rgba(99,210,190,0.35); }
+  .send-btn:active { transform: scale(0.96); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .send-btn svg { width: 16px; height: 16px; fill: #0a1a17; }
+
+  .input-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    letter-spacing: 0.2px;
+  }
+
+  /* Connection error */
+  .conn-error {
+    padding: 14px 18px;
+    background: rgba(232,122,122,0.08);
+    border: 1px solid rgba(232,122,122,0.25);
+    border-radius: 12px;
+    font-size: 13px;
+    color: #f0a0a0;
+    text-align: center;
+    animation: fadeUp 0.3s ease;
+    line-height: 1.6;
+  }
+
+  .conn-error strong { display: block; margin-bottom: 4px; }
+
+  /* Divider */
+  .time-divider {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .time-divider::before,
+  .time-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div class="logo-text">Therapy<span>Pod</span></div>
+  </div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    AI Active
+  </div>
+</div>
+
+<!-- Session bar -->
+<div class="session-bar">
+  <div class="session-info">Session <strong id="sessionId">—</strong></div>
+  <div class="sep">·</div>
+  <div class="session-info">Messages <strong id="msgCount">0</strong></div>
+  <div class="mood-chip mood-neutral" id="moodChip">😐 Neutral</div>
+</div>
+
+<!-- Chat area -->
+<div class="chat-area" id="chatArea">
+  <div class="welcome-card" id="welcomeCard">
+    <span class="welcome-icon">💬</span>
+    <h2>How are you feeling?</h2>
+    <p>This is a safe, private space. Share what's on your mind and I'm here to listen.</p>
+    <div class="starter-pills">
+      <div class="starter-pill" onclick="sendStarter(this)">😔 I've been feeling really down lately</div>
+      <div class="starter-pill" onclick="sendStarter(this)">😰 I'm overwhelmed with stress and anxiety</div>
+      <div class="starter-pill" onclick="sendStarter(this)">😤 I'm so frustrated, nothing is going right</div>
+      <div class="starter-pill" onclick="sendStarter(this)">😊 Actually, I'm feeling pretty good today</div>
+    </div>
+  </div>
+</div>
+
+<!-- Input area -->
+<div class="input-area">
+  <div class="input-row">
+    <textarea id="userInput" placeholder="Share what's on your mind..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+  <div class="input-hint">TherapyPod AI · For demonstration purposes only</div>
+</div>
+
+<script>
+  const API = 'http://127.0.0.1:8000';
+  const userId = 'demo_' + Math.random().toString(36).substr(2, 6);
+  let msgCount = 0;
+  let welcomeRemoved = false;
+
+  document.getElementById('sessionId').textContent = userId.replace('demo_', '#');
+
+  const moodConfig = {
+    neutral:  { cls: 'mood-neutral',  emoji: '😐', label: 'Neutral' },
+    anxious:  { cls: 'mood-anxious',  emoji: '😰', label: 'Anxious' },
+    sad:      { cls: 'mood-sad',      emoji: '😔', label: 'Sad' },
+    angry:    { cls: 'mood-angry',    emoji: '😤', label: 'Angry' },
+    positive: { cls: 'mood-positive', emoji: '😊', label: 'Positive' },
+    crisis:   { cls: 'mood-crisis',   emoji: '🚨', label: 'Crisis' }
+  };
+
+  function updateMoodChip(mood) {
+    const chip = document.getElementById('moodChip');
+    const cfg = moodConfig[mood] || moodConfig.neutral;
+    chip.className = 'mood-chip ' + cfg.cls;
+    chip.textContent = cfg.emoji + ' ' + cfg.label;
+  }
+
+  function getTime() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function removeWelcome() {
+    if (!welcomeRemoved) {
+      const w = document.getElementById('welcomeCard');
+      if (w) w.remove();
+      welcomeRemoved = true;
+    }
+  }
+
+  function addTimeDivider() {
+    const div = document.createElement('div');
+    div.className = 'time-divider';
+    div.textContent = 'Today ' + getTime();
+    document.getElementById('chatArea').appendChild(div);
+  }
+
+  function addMessage(text, type, meta = {}) {
+    const chatArea = document.getElementById('chatArea');
+    const msg = document.createElement('div');
+    msg.className = 'message ' + type;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    if (meta.crisis) bubble.classList.add('crisis-bubble');
+    bubble.textContent = text;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'msg-meta';
+    metaEl.textContent = getTime();
+
+    if (type === 'bot' && meta.mood) {
+      const cfg = moodConfig[meta.mood] || moodConfig.neutral;
+      const tag = document.createElement('span');
+      tag.className = 'mood-tag ' + cfg.cls;
+      tag.textContent = cfg.emoji + ' ' + cfg.label;
+      metaEl.appendChild(tag);
+    }
+
+    msg.appendChild(bubble);
+    msg.appendChild(metaEl);
+    chatArea.appendChild(msg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    return msg;
+  }
+
+  function addTyping() {
+    const chatArea = document.getElementById('chatArea');
+    const typing = document.createElement('div');
+    typing.className = 'message bot';
+    typing.id = 'typingIndicator';
+    typing.innerHTML = '<div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+    chatArea.appendChild(typing);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typingIndicator');
+    if (t) t.remove();
+  }
+
+  function sendStarter(el) {
+    const text = el.textContent.replace(/^[^\s]+\s/, '').trim();
+    document.getElementById('userInput').value = text;
+    sendMessage();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    removeWelcome();
+    if (msgCount === 0) addTimeDivider();
+
+    input.value = '';
+    input.style.height = 'auto';
+    document.getElementById('sendBtn').disabled = true;
+
+    addMessage(text, 'user');
+    addTyping();
+
+    try {
+      const res = await fetch(API + '/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, text })
+      });
+
+      const data = await res.json();
+      removeTyping();
+
+      addMessage(data.reply, 'bot', { mood: data.mood, crisis: data.escalate });
+      updateMoodChip(data.mood);
+
+      msgCount = data.session_length;
+      document.getElementById('msgCount').textContent = msgCount;
+
+    } catch (err) {
+      removeTyping();
+      const chatArea = document.getElementById('chatArea');
+      const errDiv = document.createElement('div');
+      errDiv.className = 'conn-error';
+      errDiv.innerHTML = '<strong>⚠️ API not reachable</strong>Make sure your Flask API is running in Termux on port 8000';
+      chatArea.appendChild(errDiv);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('userInput').focus();
+  }
+</script>
+</body>
+</html>
